@@ -1,0 +1,13 @@
+Are there any specific features or functionalities that you believe are missing or could be improved?
+
+On a scale of 1 to 5, how easy is it to navigate and use the data management features within the bpmn.io extension? 
+
+Have you encountered any performance issues (e.g., slow loading, freezing) while using the extension? If yes, please describe the issue.
+
+On a scale of 1 to 5, how stable has the extension been during your usage?
+
+What do you think about the overall user interface design of the extension in terms of aesthetics and ease of use?
+
+Do you have any suggestions for improving the user interface or user experience design?
+
+Is there anything else you would like to add about your experience with our bpmn.io extension for data management? Any specific feedback or suggestions?

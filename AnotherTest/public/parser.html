@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Precondition Parser Demo</title>
+    <style>
+        
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        label {
+            display: block;
+            margin-bottom: 10px;
+        }
+        input[type="text"] {
+            width: 150%;
+            padding: 5px;
+            margin-bottom: 10px;
+        }
+        .error {
+    border: 2px solid red; /* Customize the border color or style */
+    background-color: #ffe6e6; /* Customize the background color */
+    color: #ff0000; /* Customize the text color */
+}
+        
+        button {
+            display: block;
+            background-color: #0074D9;
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Precondition Parser Demo</h1>
+    <div class="container">
+        <label for="sqlExpression">Enter Precondition:</label>
+        <input type="text" id="sqlExpression2" placeholder="e.g., SELECT A1, A2 FROM R1, R2 WHERE (x > 10) AND TUPLE(x) IN R3" >
+        <button id="parse">RES</button>
+        <ul id="suggestions" class="suggestions"></ul>
+    </div>
+    <div class="container" id="output"></div>
+    
+    <script src="validator.js"></script>
+</body>
+</html>

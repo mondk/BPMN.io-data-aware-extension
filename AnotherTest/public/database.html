@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>JSON Database App</title>
+</head>
+<body>
+    <textarea id="jsonDatabase" rows="10" cols="50"></textarea>
+    <br>
+    <label for="action">Action: </label>
+    <select id="action">
+        <option value="insert">Insert</option>
+        <option value="delete">Delete</option>
+        <option value="query">Query</option>
+    </select>
+    <input type="text" id="table" placeholder="Table name">
+    <input type="text" id="data" placeholder="JSON data">
+    <button id="execute">Execute</button>
+
+    <script>
+        // Sample initial JSON database
+        let database = {
+            users: [],
+            products: [],
+        };
+
+        const userAttributeTypes = {
+            id: "number",
+            username: "string",
+            email: "string",
+        };
+
+        // Reference to the textarea
+        const textarea = document.getElementById('jsonDatabase');
+
+        // Load the database into the textarea
+        function loadDatabase() {
+            textarea.value = JSON.stringify(database, null, 2);
+        }
+
+        // Update the database based on user input
+        function executeAction() {
+            const action = document.getElementById('action').value;
+            const table = document.getElementById('table').value;
+            const data = document.getElementById('data').value;
+
+            try {
+                if (action === 'insert') {
+                    try {
+                        const userData = JSON.parse(data);
+                        insertUser(userData);
+                        console.log("User inserted successfully.");
+                    } catch (error) {
+                        console.error("Error inserting user:", error.message);
+                    }
+                } else if (action === 'delete') {
+                    database[table] = database[table].filter((item) => !isEqual(item, JSON.parse(data)));
+                } else if (action === 'query') {
+                    const result = database[table].filter((item) => isEqual(item, JSON.parse(data)));
+
+                    if (result.length === 0) {
+                        alert("No matching tuples found.");
+                        return;
+                    }
+
+                    textarea.value = JSON.stringify(result, null, 2);
+                }
+
+                // Update the textarea with the modified database
+                loadDatabase();
+            } catch (error) {
+                alert('Invalid input or table does not exist');
+            }
+        }
+
+        function insertUser(userData) {
+            // Validate the data types before insertion
+            for (const key in userAttributeTypes) {
+                const expectedType = userAttributeTypes[key];
+                const actualType = typeof userData[key];
+
+                if (expectedType !== actualType) {
+                    throw new Error(`Invalid data type for '${key}'. Expected '${expectedType}', but got '${actualType}'.`);
+                }
+            }
+
+            database.users.push(userData);
+        }
+
+        // Initialize the app
+        loadDatabase();
+
+        // Attach event listener to the execute button
+        document.getElementById('execute').addEventListener('click', executeAction);
+
+        // Deep equality function to compare objects
+        function isEqual(obj1, obj2) {
+            return JSON.stringify(obj1) === JSON.stringify(obj2);
+        }
+    </script>
+</body>
+</html>

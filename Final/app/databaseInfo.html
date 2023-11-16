@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Metadata ERD</title>
+</head>
+<body>
+    <pre id="mermaid-container" class="mermaid"></pre>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const queryString = window.location.search;
+            const urlParams = new URLSearchParams(queryString);
+            const encodedData = urlParams.get('data');
+            const jsonString = decodeURIComponent(encodedData);
+            const jsonData = JSON.parse(jsonString);
+
+            const generateMermaidCode = (data) => {
+                let mermaidCode = "erDiagram\n";
+
+                for (const tableName in data.metadata) {
+                    mermaidCode += `  ${tableName} {\n`;
+                    
+                    for (const columnName in data.metadata[tableName]) {
+                        const dataType = data.metadata[tableName][columnName];
+                        console.log(tableName)
+                        let j=0;
+                        for(let i in dataType){
+                            
+                            console.log(dataType[i])
+                            if(j==0){
+                                mermaidCode += `  ${dataType[i]}  `;
+                            }
+                            else if(j==1){
+                                mermaidCode += `  ${dataType[i]} `;
+                            }
+                            else{
+                                if(`${dataType[i]}` =='PRI'){
+                                    mermaidCode += `pk \n`;
+                                }
+                                else if(`${dataType[i]}` =='MUL'){
+                                    mermaidCode += `  \n`;
+                                }
+                                else{
+                                mermaidCode += `  ${dataType[i]} \n`;
+                                }
+                            }
+                            j++;
+                        }
+                        console.log(j)
+
+                        
+                    }
+
+                    mermaidCode += "  }\n";
+                }
+
+                return mermaidCode;
+            };
+
+            const mermaidCode = generateMermaidCode(jsonData);
+            const mermaidContainer = document.getElementById('mermaid-container');
+            mermaidContainer.textContent = mermaidCode;
+            console.log(jsonData)
+            console.log(mermaidCode)
+        });
+    </script>
+</body>
+</html>

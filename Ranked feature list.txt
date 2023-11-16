@@ -1,0 +1,13 @@
+Database viewer intance
+
+Expandable panel for adding properties like precondition and effects
+
+A way to declare process variables
+
+PDMML passer
+
+#######[ IF TIME PERMITS ]#######
+
+Backwards compatablity with regular BPMN model
+
+

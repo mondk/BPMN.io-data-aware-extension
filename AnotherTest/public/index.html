@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Final Demo</title>
+
+        <style>
+            .pre{
+                width: 280px;
+                height: 90px;
+            }
+            .eff{
+                width: 280px;
+                height: 150px;
+            }
+            .parsed{
+                border: 5px solid green; /* Customize the border color or style */
+                background-color: #ffe6e6; /* Customize the background color */
+                
+            }
+            .error {
+                background-color: rgba(255, 0, 0, 0.2); /* Red background */
+}
+        </style>
+    </head>
+        
+    <body>
+        <button id="create">Create drop down</button>
+        <div id="container">
+           
+        </div>
+
+        <textarea id="jsonData" rows="10" cols="50">{
+            "users": [
+              {
+                "id": 1,
+                "username": "john_doe",
+                "email": "john@example.com",
+                "age": 30,
+                "isActive": true
+                
+              },
+              {
+                "id": 2,
+                "username": "jane_smith",
+                "email": "jane@example.com",
+                "age": 25,
+                "isActive": false
+                
+              },
+              {
+                "id": 3,
+                "username": "alice_jones",
+                "email": "alice@example.com",
+                "age": 28,
+                "isActive": true
+            
+              }
+            ]
+          }
+          </textarea>
+  <button id="Initialize">Initialize Database</button>
+
+  <button id="sim">Simulate</button>
+
+        <script type="module" src="index.js"></script>
+
+    </body>
+</html>

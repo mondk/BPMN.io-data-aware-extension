@@ -1,0 +1,244 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <stdint.h>
+#include <openssl/sha.h>
+#include <inttypes.h>
+#include "messages.h"
+#include <pthread.h>
+
+#define BUFFER_SIZE 49
+#define NUM_THREADS 20
+
+void hash(uint8_t* hash, const void *message, size_t message_len) {
+    // Initialize the OpenSSL SHA-256 context
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+
+    // Update the context with your message
+    SHA256_Update(&sha256, message, message_len);
+    // Finalize the hash and store it in the 'hash' array
+    SHA256_Final(hash, &sha256);
+}
+
+int compareHashes(uint8_t* output_hash, uint8_t* target_hash, int hash_length) {
+    for (int i = 0; i < hash_length; i++) {
+        if (output_hash[i] != target_hash[i]) {
+            return 1; // Hashes do not match
+        }
+    }
+    return 0; // Hashes match
+}
+
+typedef struct {
+    uint64_t start;
+    uint64_t end;
+    uint8_t* target_hash;
+    uint8_t* packet_data;
+} ThreadArgs;
+
+pthread_t threads[NUM_THREADS];
+int result_found = 0; // Flag to indicate whether a result has been found
+int cancel_flag = 0; // Flag for thread cancellation
+pthread_mutex_t result_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t result_cond = PTHREAD_COND_INITIALIZER;
+
+void* threadHash(void* args) {
+    ThreadArgs* thread_args = (ThreadArgs*)args;
+    uint64_t start = thread_args->start;
+    uint64_t end = thread_args->end;
+    uint8_t* target_hash = thread_args->target_hash;
+    uint8_t* packet_data = thread_args->packet_data;
+
+    // Declare and initialize other variables used in the function
+    uint8_t message_bytes[8];
+    uint8_t output_hash[SHA256_DIGEST_LENGTH];
+    int result = 1;
+
+    for (uint64_t i = start; i <= end; i++) {
+        if (cancel_flag) {
+            // Another thread has requested cancellation, exit
+            pthread_exit(NULL);
+        }
+
+        memcpy(message_bytes, &i, sizeof(i));
+        hash(output_hash, message_bytes, sizeof(message_bytes));
+
+        result = compareHashes(output_hash, target_hash, SHA256_DIGEST_LENGTH);
+
+        if (result == 0) {
+            printf("Hashes match! i = %" PRIu64 "\n", i);
+
+            pthread_mutex_lock(&result_mutex);
+            result_found = 1;
+            cancel_flag = 1; // Set the cancel flag
+            pthread_mutex_unlock(&result_mutex);
+
+            memcpy(packet_data, &i, sizeof(i));
+
+            // Signal other threads to exit
+            pthread_cond_broadcast(&result_cond);
+            pthread_mutex_unlock(&result_mutex);
+
+            break;
+        }
+    }
+
+    if (result == 1) {
+        printf("No match found!\n");
+    }
+
+    return packet_data;
+}
+
+int main(int argc, char argv[]) {
+    int PORT = atoi(argv[1]);
+    int server_socket, new_socket;
+    struct sockaddr_in server_addr, new_addr;
+    socklen_t addr_size;
+    uint8_t buffer[BUFFER_SIZE];
+
+    // Create socket
+    server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server_socket < 0) {
+        perror("Socket creation error");
+        exit(1);
+    }
+
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(PORT);
+    server_addr.sin_addr.s_addr = INADDR_ANY;
+
+    // Bind socket
+    // Bind socket
+if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+    perror("Binding error");
+    exit(1);
+}
+
+
+    // Listen for incoming connections
+    if (listen(server_socket, 20) == 0) {
+        printf("Listening...\n");
+    } else {
+        perror("Listening error");
+        exit(1);
+    }
+
+    while (1) {
+        addr_size = sizeof(new_addr);
+        new_socket = accept(server_socket, (struct sockaddr*)&new_addr, &addr_size); // Accept connection
+
+        // Receive data from the client
+        memset(buffer, 0, sizeof(buffer)); // Clear the buffer
+        ssize_t bytes_received = recv(new_socket, buffer, sizeof(buffer), 0);
+
+        if (bytes_received != BUFFER_SIZE) {
+            perror("Invalid packet size");
+            close(new_socket);
+            continue;
+        }
+
+        // Extract data from the received buffer
+        uint8_t target_hash[SHA256_DIGEST_LENGTH];
+        memcpy(target_hash, buffer, 32);
+
+        uint64_t start;
+        memcpy(&start, buffer + 32, 8);
+        start = be64toh(start);
+
+        uint64_t end;
+        memcpy(&end, buffer + 40, 8);
+        end = be64toh(end);
+        uint8_t priority = buffer[48];
+
+        uint8_t output_hash[SHA256_DIGEST_LENGTH];
+        uint64_t i;
+        int result = 1;
+        uint8_t message_bytes[8];
+
+        // Print the received data
+        printf("Received packet:\n");
+        printf("Hash: ");
+        for (int i = 0; i < SHA256_DIGEST_LENGTH; i++) {
+            printf("%02x", target_hash[i]);
+        }
+        printf("\n");
+        printf("Start: %" PRIu64 "\n", start);
+        printf("End: %" PRIu64 "\n", end);
+        printf("Priority: %u\n", priority);
+
+        // Calculate the segment size
+        uint64_t segment = (end - start) / NUM_THREADS;
+
+        // Dynamically allocate memory to store the result
+        uint8_t* packet_data = (uint8_t*)malloc(sizeof(uint64_t));
+
+        // Initialize ThreadArgs array
+        ThreadArgs thread_args[NUM_THREADS];
+        for (int i = 0; i < NUM_THREADS; i++) {
+            thread_args[i].start = start + segment * i;
+            thread_args[i].end = thread_args[i].start + segment;
+            thread_args[i].target_hash = target_hash;
+            thread_args[i].packet_data = packet_data;
+        }
+
+        // Create threads
+        for (int i = 0; i < NUM_THREADS; i++) {
+            int result = pthread_create(&threads[i], NULL, threadHash, (void*)&thread_args[i]);
+
+            if (result != 0) {
+                perror("Thread creation failed");
+                return 1;
+            }
+        }
+
+        // Wait for all threads to finish
+        for (int i = 0; i < NUM_THREADS; i++) {
+            pthread_join(threads[i], NULL);
+        }
+
+        // Check if a result was found
+        if (packet_data != NULL) {
+          
+            // Convert the result to network byte order (big-endian)
+            uint64_t* data64 = (uint64_t*)packet_data;
+            *data64 = htobe64(*data64);
+
+            printf("Result to be sent: %" PRIu64 "\n", *data64);
+
+            // Send the packet to the client
+            ssize_t bytes_sent = send(new_socket, packet_data, sizeof(uint64_t), 0);
+            if (bytes_sent == -1) {
+                perror("Error sending data");
+                close(new_socket);
+                close(server_socket);
+                exit(EXIT_FAILURE);
+            }
+
+            // Cleanup the allocated memory for the packet_data
+            free(packet_data);
+            // Reset the flags for the next request
+            pthread_mutex_lock(&result_mutex);
+            result_found = 0;
+            cancel_flag = 0;
+            pthread_mutex_unlock(&result_mutex);
+        } else {
+            printf("No result found.\n");
+            // Reset the flags for the next request
+            pthread_mutex_lock(&result_mutex);
+            result_found = 0;
+            cancel_flag = 0;
+            pthread_mutex_unlock(&result_mutex);
+        }
+        close(new_socket);
+    }
+
+    close(server_socket);
+
+    return 0;
+}

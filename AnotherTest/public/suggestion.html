@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SQL Query Editor</title>
+  <style>
+    /* Define your CSS styles here */
+  </style>
+</head>
+<body>
+  <div class="editor">
+    <textarea id="sqlEditor" placeholder="Start typing your query..."></textarea>
+    <ul id="suggestions" class="suggestions"></ul>
+  </div>
+
+  <script>
+    const sqlEditor = document.getElementById('sqlEditor');
+    const suggestionsList = document.getElementById('suggestions');
+    const keywords = ['select', 'AND', 'OR', 'NOT', 'IN', 'TUPLE'];
+    let currentKeyWords = keywords
+    let cursorPosition1 = ''
+    sqlEditor.addEventListener('input', function() {
+      // Get the current query
+      const query = sqlEditor.value;
+      const cursorPosition = sqlEditor.selectionStart
+      cursorPosition1=cursorPosition
+      // Get the current word being typed
+      
+
+      // Clear existing suggestions
+      clearSuggestions();
+
+      // Provide suggestions based on the current word
+      validator(query,cursorPosition)
+    });
+
+    sqlEditor.addEventListener('keydown', function(event) {
+        let pro;
+      if (event.key === 'Tab') {
+     
+        event.preventDefault();
+        const selectedSuggestion = suggestionsList.firstChild;
+        console.log(selectedSuggestion)
+        if (selectedSuggestion) {
+          let word = selectedSuggestion.textContent
+          if(['select','from','where'].includes(word))
+            insertSuggestion(word.toUpperCase());
+            else
+            insertSuggestion(word);
+        }
+        else {
+            
+            pro = parseQueryProgress(sqlEditor.value,cursorPosition1);
+            console.log(pro)
+            if(pro.cursorAt=='SELECT'){
+                showSuggestions(['attr1','attr2','bell1','bell2'])
+            }
+            else if(pro.cursorAt=='FROM'){
+                showSuggestions(['table1','table2','table3'])
+            }
+            else if(pro.cursorAt=='WHERE'){
+                showSuggestions(['attr1','attr2','bell1','bell2','table1','table2','table3'])
+            }
+        }
+      }
+    });
+
+    function getCurrentWord(query) {
+      const caretPosition = sqlEditor.selectionStart;
+      const textBeforeCaret = query.substring(0, caretPosition);
+      const wordsBeforeCaret = textBeforeCaret.split(/\s/);
+      return wordsBeforeCaret[wordsBeforeCaret.length - 1];
+    }
+
+    function getMatchingKeywords(prefix) {
+      // Filter keywords that start with the current word
+      return currentKeyWords.filter(keyword => keyword.startsWith(prefix));
+    }
+
+    function showSuggestions(suggestions) {
+      suggestions.forEach(suggestion => {
+        const li = document.createElement('li');
+        li.textContent = suggestion;
+        li.addEventListener('click', () => insertSuggestion(suggestion));
+        suggestionsList.appendChild(li);
+      });
+    }
+
+    function insertSuggestion(suggestion) {
+      const currentQuery = sqlEditor.value;
+      const currentWord = getCurrentWord(currentQuery);
+      const startIndex = currentQuery.lastIndexOf(currentWord);
+      const updatedQuery = currentQuery.substring(0, startIndex) + suggestion + '' + currentQuery.substring(startIndex + currentWord.length);
+      sqlEditor.value = updatedQuery;
+      clearSuggestions();
+    }
+
+    function clearSuggestions() {
+      while (suggestionsList.firstChild) {
+        suggestionsList.removeChild(suggestionsList.firstChild);
+      }
+    }
+
+    function validator(expr,cursorPosition){
+        const currentWord = getCurrentWord(expr);
+        if (currentWord.length > 0) {
+        const matchingKeywords = getMatchingKeywords(currentWord);
+        showSuggestions(matchingKeywords);
+      }
+      const pro = parseQueryProgress(expr,cursorPosition)
+      console.log(pro)
+      if(pro.cursorAt=='SELECT'){
+        sel_keyWords =['from','attr1','attr2','bell1','bell2']
+        currentKeyWords = sel_keyWords
+      }
+      else if(pro.cursorAt=='FROM'){
+        currentKeyWords = ['where','table1','table2','table3']
+      }
+      else if(pro.cursorAt=='WHERE'){
+        currentKeyWords = ['AND', 'OR', 'NOT', 'IN', 'TUPLE','attr1','attr2','bell1','bell2','table1','table2','table3'];
+      }
+      else currentKeyWords=keywords
+    }
+
+    function parseQueryProgress(queryText, cursorPosition) {
+  const keyWords = ['SELECT', 'FROM', 'WHERE'];
+  let progress = {};
+  let cursorPositionInfo = '';
+
+  for (const keyword of keyWords) {
+    const keywordIndex = queryText.indexOf(keyword);
+    if (keywordIndex !== -1 && cursorPosition >= keywordIndex + keyword.length) {
+      cursorPositionInfo = keyword;
+    }
+    
+    progress[keyword] = keywordIndex !== -1;
+  }
+
+  progress.cursorAt = cursorPositionInfo;
+  return progress;
+}
+  </script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "Delta-BPMN",
+  "uri": "http://iotlab.semtech.ir/schema/bpmn/qa",
+  "prefix": "ta",
+  "xml": {
+    "tagAlias": "lowerCase"
+  },
+  "types": [
+    {
+      "name": "DataTask",
+      "superClass": [ 
+          "bpmn:Task"
+      ],
+      "properties":[
+        {
+          "name": "query",
+          "isAttr": true,
+          "type": "String"
+        }
+      ]
+    }
+ 
+  ],
+  "emumerations": [],
+  "associations": []
+}
